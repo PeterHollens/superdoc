@@ -52,6 +52,7 @@ export function collectTocSources(doc: ProseMirrorNode, config: TocSwitchConfig)
   const sources: TocSource[] = [];
   const { outlineLevels, useAppliedOutlineLevel, tcFieldIdentifier, tcFieldLevels } = config.source;
   const useApplied = useAppliedOutlineLevel ?? false;
+  const appliedOutlineLevels = useApplied ? (outlineLevels ?? { from: 1, to: 9 }) : undefined;
   const collectTcFields = tcFieldIdentifier !== undefined || tcFieldLevels !== undefined;
 
   // Track the current paragraph context for TC field collection
@@ -83,11 +84,11 @@ export function collectTocSources(doc: ProseMirrorNode, config: TocSwitchConfig)
       }
 
       // Check applied outline level (\u switch)
-      if (useApplied && outlineLevels) {
+      if (appliedOutlineLevels) {
         const rawOutlineLevel = paragraphProps?.outlineLevel as number | undefined;
         if (rawOutlineLevel != null) {
           const tocLevel = rawOutlineLevel + 1;
-          if (tocLevel >= outlineLevels.from && tocLevel <= outlineLevels.to) {
+          if (tocLevel >= appliedOutlineLevels.from && tocLevel <= appliedOutlineLevels.to) {
             sources.push({ text: flattenText(node), level: tocLevel, sdBlockId, kind: 'appliedOutline' });
             return true;
           }
