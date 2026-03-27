@@ -1,6 +1,7 @@
 import type { ImageRun } from '@superdoc/contracts';
 import type { PMNode } from '../../types.js';
 import { pickNumber, isPlainObject } from '../../utilities.js';
+import { buildFlowRunLink } from '../../marks/links.js';
 import { type InlineConverterParams, NotInlineNodeError } from './common.js';
 
 /**
@@ -101,6 +102,12 @@ export function imageNodeToRun({ node, positions, sdtMetadata }: InlineConverter
   // Optional properties
   if (typeof attrs.alt === 'string') run.alt = attrs.alt;
   if (typeof attrs.title === 'string') run.title = attrs.title;
+  const hyperlink = isPlainObject(attrs.hyperlink) ? attrs.hyperlink : undefined;
+  const link = buildFlowRunLink({
+    href: hyperlink?.url,
+    tooltip: hyperlink?.tooltip,
+  });
+  if (link) run.link = link;
   if (typeof attrs.clipPath === 'string') run.clipPath = attrs.clipPath;
 
   // Spacing attributes (from wrap.attrs.distT/distB/distL/distR)

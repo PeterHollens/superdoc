@@ -4992,6 +4992,73 @@ describe('DomPainter', () => {
       expect(img?.height).toBe(100);
     });
 
+    it('renders linked inline images as anchors', () => {
+      const imageBlock: FlowBlock = {
+        kind: 'paragraph',
+        id: 'linked-inline-img-block',
+        runs: [
+          {
+            kind: 'image',
+            src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            width: 100,
+            height: 100,
+            alt: 'Inline logo',
+            link: {
+              version: 2,
+              href: 'https://example.com',
+              tooltip: 'Visit site',
+            },
+          },
+        ],
+      };
+
+      const imageMeasure: Measure = {
+        kind: 'paragraph',
+        lines: [
+          {
+            fromRun: 0,
+            fromChar: 0,
+            toRun: 0,
+            toChar: 0,
+            width: 100,
+            ascent: 100,
+            descent: 0,
+            lineHeight: 100,
+          },
+        ],
+        totalHeight: 100,
+      };
+
+      const imageLayout: Layout = {
+        pageSize: { w: 400, h: 500 },
+        pages: [
+          {
+            number: 1,
+            fragments: [
+              {
+                kind: 'para',
+                blockId: 'linked-inline-img-block',
+                fromLine: 0,
+                toLine: 1,
+                x: 0,
+                y: 0,
+                width: 100,
+              },
+            ],
+          },
+        ],
+      };
+
+      const painter = createDomPainter({ blocks: [imageBlock], measures: [imageMeasure] });
+      painter.paint(imageLayout, mount);
+
+      const anchor = mount.querySelector('.superdoc-line a');
+      expect(anchor?.getAttribute('href')).toBe('https://example.com');
+      expect(anchor?.getAttribute('title')).toBe('Visit site');
+      expect(anchor?.getAttribute('aria-label')).toBe('Inline logo (opens in new tab)');
+      expect(anchor?.querySelector('img')).toBeTruthy();
+    });
+
     it('renders DrawingML luminance using percentage units', () => {
       const dataUrl =
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -6381,6 +6448,59 @@ describe('ImageFragment (block-level images)', () => {
       const metadata = JSON.parse(metadataAttr!);
       expect(metadata.originalWidth).toBe(200);
       expect(metadata.originalHeight).toBe(100);
+    });
+
+    it('renders linked image fragments as anchors', () => {
+      const linkedBlock: FlowBlock = {
+        kind: 'image',
+        id: 'linked-img',
+        src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        width: 200,
+        height: 100,
+        alt: 'Footer logo',
+        link: {
+          version: 2,
+          href: 'https://example.com',
+          tooltip: 'Visit site',
+        },
+      };
+
+      const linkedMeasure: Measure = {
+        kind: 'image',
+        width: 200,
+        height: 100,
+      };
+
+      const imageLayout: Layout = {
+        pageSize: { w: 400, h: 500 },
+        pages: [
+          {
+            number: 1,
+            fragments: [
+              {
+                kind: 'image',
+                blockId: 'linked-img',
+                x: 50,
+                y: 50,
+                width: 200,
+                height: 100,
+              },
+            ],
+          },
+        ],
+      };
+
+      const painter = createDomPainter({
+        blocks: [linkedBlock],
+        measures: [linkedMeasure],
+      });
+      painter.paint(imageLayout, mount);
+
+      const anchor = mount.querySelector('.superdoc-image-fragment a');
+      expect(anchor?.getAttribute('href')).toBe('https://example.com');
+      expect(anchor?.getAttribute('title')).toBe('Visit site');
+      expect(anchor?.getAttribute('aria-label')).toBe('Footer logo (opens in new tab)');
+      expect(anchor?.querySelector('img')).toBeTruthy();
     });
 
     it('DOES add data-image-metadata for images with vmlWatermark: false explicitly set', () => {

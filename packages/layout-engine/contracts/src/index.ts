@@ -288,6 +288,8 @@ export type ImageRun = {
   alt?: string;
   /** Image title (tooltip). */
   title?: string;
+  /** Optional hyperlink metadata for clickable images. */
+  link?: FlowRunLink;
   /** Clip-path value for cropped images. */
   clipPath?: string;
 
@@ -569,6 +571,8 @@ export type ImageBlock = {
   height?: number;
   alt?: string;
   title?: string;
+  /** Optional hyperlink metadata for clickable images. */
+  link?: FlowRunLink;
   objectFit?: 'contain' | 'cover' | 'fill' | 'scale-down';
   display?: 'inline' | 'block';
   padding?: BoxSpacing;

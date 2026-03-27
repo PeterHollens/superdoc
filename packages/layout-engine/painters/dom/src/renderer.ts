@@ -3351,6 +3351,7 @@ export class DomPainter {
       }
 
       const block = lookup.block as ImageBlock;
+      const accessibleLabel = block.alt ?? block.title ?? '';
 
       const fragmentEl = this.doc.createElement('div');
       fragmentEl.classList.add(CLASS_NAMES.fragment, DOM_CLASS_NAMES.IMAGE_FRAGMENT);
@@ -3440,7 +3441,13 @@ export class DomPainter {
       if (filters.length > 0) {
         img.style.filter = filters.join(' ');
       }
-      fragmentEl.appendChild(img);
+      fragmentEl.appendChild(
+        this.wrapElementWithLink(img, block.link, {
+          accessibleLabel,
+          display: 'block',
+        }),
+      );
+      this.flushPendingTooltips(fragmentEl);
 
       return fragmentEl;
     } catch (error) {
@@ -3495,6 +3502,7 @@ export class DomPainter {
 
       innerWrapper.appendChild(this.renderDrawingContent(block, fragment, context));
       fragmentEl.appendChild(innerWrapper);
+      this.flushPendingTooltips(fragmentEl);
 
       return fragmentEl;
     } catch (error) {
@@ -3544,7 +3552,10 @@ export class DomPainter {
     const imageClipPath = resolveBlockClipPath(drawing);
     applyImageClipPath(img, imageClipPath);
     img.style.display = 'block';
-    return img;
+    return this.wrapElementWithLink(img, drawing.link, {
+      accessibleLabel: drawing.alt ?? drawing.title ?? '',
+      display: 'block',
+    });
   }
 
   private createVectorShapeElement(
@@ -4581,6 +4592,71 @@ export class DomPainter {
     // not per-element handlers. This avoids duplicate event dispatching.
   }
 
+  private wrapElementWithLink(
+    content: HTMLElement,
+    link: FlowRunLink | undefined,
+    options?: {
+      accessibleLabel?: string;
+      display?: 'inline-block' | 'block';
+    },
+  ): HTMLElement {
+    if (!this.doc || !link) {
+      return content;
+    }
+
+    const linkData = this.buildLinkRenderData(link);
+    if (!linkData) {
+      return content;
+    }
+
+    if (linkData.blocked || !linkData.href) {
+      if (linkData.dataset) {
+        applyLinkDataset(content, linkData.dataset);
+      }
+      return content;
+    }
+
+    const anchor = this.doc.createElement('a');
+    this.applyLinkAttributes(anchor, linkData);
+    if (linkData.dataset) {
+      applyLinkDataset(anchor, linkData.dataset);
+    }
+
+    if (options?.display) {
+      anchor.style.display = options.display;
+    }
+    if (options?.display === 'block') {
+      anchor.style.width = '100%';
+      anchor.style.height = '100%';
+    }
+
+    const accessibleLabel = options?.accessibleLabel?.trim();
+    if (accessibleLabel) {
+      anchor.setAttribute(
+        'aria-label',
+        linkData.target === '_blank' ? `${accessibleLabel} (opens in new tab)` : accessibleLabel,
+      );
+    }
+
+    if (linkData.tooltip) {
+      this.pendingTooltips.set(anchor, linkData.tooltip);
+    }
+
+    anchor.appendChild(content);
+    return anchor;
+  }
+
+  private flushPendingTooltips(root: ParentNode): void {
+    const anchors = root.querySelectorAll('a[href]');
+    anchors.forEach((anchor) => {
+      const pendingTooltip = this.pendingTooltips.get(anchor as HTMLElement);
+      if (pendingTooltip) {
+        this.applyTooltipAccessibility(anchor as HTMLAnchorElement, pendingTooltip);
+        this.pendingTooltips.delete(anchor as HTMLElement);
+      }
+    });
+  }
+
   /**
    * Render a single run as an HTML element (span or anchor).
    */
@@ -4769,6 +4845,7 @@ export class DomPainter {
     }
 
     const hasClipPath = typeof run.clipPath === 'string' && run.clipPath.trim().length > 0;
+    const accessibleLabel = run.alt ?? run.title ?? '';
 
     // Create img element
     const img = this.doc.createElement('img');
@@ -4941,7 +5018,10 @@ export class DomPainter {
       this.applySdtDataset(wrapper, run.sdt);
       if (run.dataAttrs) applyRunDataAttributes(wrapper, run.dataAttrs);
       wrapper.appendChild(img);
-      return wrapper;
+      return this.wrapElementWithLink(wrapper, run.link, {
+        accessibleLabel,
+        display: 'inline-block',
+      });
     }
 
     // Apply PM position tracking for cursor placement (only on img when not wrapped)
@@ -4996,10 +5076,16 @@ export class DomPainter {
       this.applySdtDataset(wrapper, run.sdt);
 
       wrapper.appendChild(img);
-      return wrapper;
+      return this.wrapElementWithLink(wrapper, run.link, {
+        accessibleLabel,
+        display: 'inline-block',
+      });
     }
 
-    return img;
+    return this.wrapElementWithLink(img, run.link, {
+      accessibleLabel,
+      display: 'inline-block',
+    });
   }
 
   /**
@@ -5976,14 +6062,7 @@ export class DomPainter {
 
     // Post-process: Apply tooltip accessibility for any links with pending tooltips
     // This must happen after elements are in the DOM so aria-describedby can reference siblings
-    const anchors = el.querySelectorAll('a[href]');
-    anchors.forEach((anchor) => {
-      const pendingTooltip = this.pendingTooltips.get(anchor as HTMLElement);
-      if (pendingTooltip) {
-        this.applyTooltipAccessibility(anchor as HTMLAnchorElement, pendingTooltip);
-        this.pendingTooltips.delete(anchor as HTMLElement); // Clean up memory
-      }
-    });
+    this.flushPendingTooltips(el);
 
     return el;
   }

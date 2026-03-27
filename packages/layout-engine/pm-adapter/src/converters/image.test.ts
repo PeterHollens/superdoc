@@ -96,6 +96,27 @@ describe('image converter', () => {
       expect(result.title).toBe('Image title');
     });
 
+    it('includes hyperlink metadata when provided', () => {
+      const node: PMNode = {
+        type: 'image',
+        attrs: {
+          src: 'image.jpg',
+          hyperlink: {
+            url: 'https://example.com',
+            tooltip: 'Visit site',
+          },
+        },
+      };
+
+      const result = imageNodeToBlock(node, mockBlockIdGenerator, mockPositionMap) as ImageBlock;
+
+      expect(result.link).toEqual({
+        version: 2,
+        href: 'https://example.com',
+        tooltip: 'Visit site',
+      });
+    });
+
     it('sets display to inline when inline attribute is true', () => {
       const node: PMNode = {
         type: 'image',

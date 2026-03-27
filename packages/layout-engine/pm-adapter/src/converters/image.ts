@@ -7,6 +7,7 @@
 import type { ImageBlock, BoxSpacing, ImageAnchor } from '@superdoc/contracts';
 import type { PMNode, BlockIdGenerator, PositionMap, NodeHandlerContext, TrackedChangesConfig } from '../types.js';
 import { collectTrackedChangeFromMarks } from '../marks/index.js';
+import { buildFlowRunLink } from '../marks/links.js';
 import { shouldHideTrackedNode, annotateBlockWithTrackedChange } from '../tracked-changes.js';
 import { isFiniteNumber, pickNumber, normalizeZIndex, resolveFloatingZIndex } from '../utilities.js';
 
@@ -288,6 +289,11 @@ export function imageNodeToBlock(
     height,
     alt: typeof attrs.alt === 'string' ? attrs.alt : undefined,
     title: typeof attrs.title === 'string' ? attrs.title : undefined,
+    link:
+      buildFlowRunLink({
+        href: isPlainObject(attrs.hyperlink) ? attrs.hyperlink.url : undefined,
+        tooltip: isPlainObject(attrs.hyperlink) ? attrs.hyperlink.tooltip : undefined,
+      }) ?? undefined,
     objectFit,
     display,
     padding: toBoxSpacing(attrs.padding as Record<string, unknown> | undefined),

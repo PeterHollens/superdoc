@@ -3686,6 +3686,28 @@ describe('paragraph converters', () => {
       expect(result?.alt).toBeUndefined();
       expect(result?.title).toBeUndefined();
     });
+
+    it('includes hyperlink metadata when provided', () => {
+      const node: PMNode = {
+        type: 'image',
+        attrs: {
+          src: 'image.png',
+          inline: true,
+          hyperlink: {
+            url: 'https://example.com',
+            tooltip: 'Visit site',
+          },
+        },
+      };
+
+      const result = imageNodeToRun(buildImageParams(node, positions));
+
+      expect(result?.link).toEqual({
+        version: 2,
+        href: 'https://example.com',
+        tooltip: 'Visit site',
+      });
+    });
   });
 
   describe('Integration: Inline images in paragraphs', () => {
